@@ -1,14 +1,28 @@
-import fitz  # PyMuPDF
+import fitz  # PyMuPDF   ENSURE YOU DOWNLOAD THIS
 import re
+import os
 
+
+output_folder = "PATH TO YOUR DIR"
 
 def extract_tuples_from_pdf(pdf_path):
-    # Open the PDF file
+    
     with fitz.open(pdf_path) as pdf_document:
-        with open('output.txt', 'w') as f:
-            # Initialize variables to store the extracted tuples
+        file_name, _ = os.path.splitext(pdf_path)
+        txt_filename = file_name + ".txt"
+        # out_path=out_path + '.txt'
+        print("Name ",txt_filename)
+        output_file_path = os.path.join(output_folder, txt_filename)
+
+        with open(output_file_path, 'w') as f:
             tuples_list = []
-            book_name = "Mahatma Gandhi: Collected Works, Volume 1"
+            file_name, _ = os.path.splitext(os.path.basename(pdf_path))
+
+# Replace hyphens with spaces and capitalize the first letter of each word
+            book_name = [word.capitalize() for word in file_name.split('-')]
+            book_name=1
+            print(book_name)       
+            # book_name = "Mahatma Gandhi: Collected Works, Volume 1"
             # page_number = 1
             paragraph_number = 0
             sentence_number = 0
@@ -16,7 +30,7 @@ def extract_tuples_from_pdf(pdf_path):
             cnt=0
             common_abbreviations = {"Mr.": "Mr*", "Mrs.": "Mrs*", "Dr.": "Dr*", "MR.": "MR*"
 
-    , "Rs.": "Rs*", "St.":"St*", "Ch.":"Ch*" , "Pt.": "Pt*",
+    , "Rs.": "Rs*", "St.":"St*", "Ch.":"Ch*" , "Pt.": "Pt*", "Vol.":"Vol*", "VOL.":"VOL*",
     "1.":"1*",
     "2.":"2*",
     "3.":"3*",
@@ -29,13 +43,10 @@ def extract_tuples_from_pdf(pdf_path):
     "0.":"0*"}
 
             
-            # Loop through each page in the PDF
             for page_num in range(pdf_document.page_count):
                 page = pdf_document[page_num]
                 page_text = page.get_text("text")
                 
-                
-                # Split the page text into paragraphs
                 blocks = page.get_text("blocks")
                 paragraphs = []
                 current_paragraph = []
@@ -63,15 +74,12 @@ def extract_tuples_from_pdf(pdf_path):
                     #     current_paragraph = []
 
                 
-                # Process each paragraph
                 for paragraph in paragraphs:
                     if not paragraph.strip():  # Skip empty paragraphs
                         continue
                     
                     # Split the paragraph into sentences
-                    
-                        # print('freeCodeCamp', file=f)
-                    print("New Para: ",paragraph, file = f)
+                    # print("New Para: ",paragraph, file = f)
                     sentences = re.split(r'(?<=[.!?])\s+', paragraph)
 
                     
@@ -80,8 +88,12 @@ def extract_tuples_from_pdf(pdf_path):
                     for sentence in sentences:
                         sentence = sentence.strip()
                         # if cnt ==1:
+                        sentence = re.sub(r'-', ' ', sentence)
                         sentence = re.sub(r'\n', ' ', sentence)
                         sentence = re.sub(r'\s{2,}', ' ', sentence)
+                        sentence = re.sub(r'[^\x00-\x7F]+', '', sentence)
+                        sentence = re.sub(r'\s+', ' ', sentence)
+                        sentence = re.sub(r'^\s+', '', sentence)
 
 
                         if len(sentence) < 7:
@@ -89,7 +101,6 @@ def extract_tuples_from_pdf(pdf_path):
                         sentence_number += 1
                         pattern = r'(?<![A-Z])\b([A-Z])\*(?![A-Z])'
 
-    # Replace the matched period part with "*"
                         sentence = re.sub(pattern, r'\1.', sentence)
                         for abbreviation, modified_version in common_abbreviations.items():
                             sentence = sentence.replace(modified_version, abbreviation)
@@ -111,59 +122,6 @@ def extract_tuples_from_pdf(pdf_path):
 
 # PDF file path
 pdf_path = 'mahatma-gandhi-collected-works-volume-1.pdf'
-
 # Extract tuples from the PDF
 extracted_tuples = extract_tuples_from_pdf(pdf_path)
 
-# Print the extracted tuples
-# for idx, tup in enumerate(extracted_tuples):
-#     print(f"Tuple {idx + 1}: {tup}")
-
-
-import fitz  # PyMuPDF
-import re
-
-def find_part_in_pdf(pdf_path, target_tuple):
-    # Open the PDF file
-    with fitz.open(pdf_path) as pdf_document:
-        for page_num in range(pdf_document.page_count):
-            page = pdf_document[page_num]
-            page_text = page.get_text("text")
-
-            # Split the page text into paragraphs
-            paragraphs = re.split(r'(?<=[.!?])\n', page_text)
-
-            for paragraph_number, paragraph in enumerate(paragraphs, start=1):
-                # Split the paragraph into sentences
-                sentences = re.split(r'(?<=[.!?]) +', paragraph)
-
-                for sentence_number, sentence in enumerate(sentences, start=1):
-                    if len(sentence) < 7:
-                        continue  # Ignore short sentences
-                    if (page_num, paragraph_number, sentence_number) == (target_tuple[1], target_tuple[2], target_tuple[3]):
-                        # Found the matching part in the PDF
-                        return {
-                            "Page Number": target_tuple[1],
-                            "Paragraph Number": paragraph_number,
-                            "Sentence Number": sentence_number,
-                            "Text": sentence
-                        }
-    return None
-
-# PDF file path
-pdf_path = 'mahatma-gandhi-collected-works-volume-1.pdf'
-
-# Target tuple to find
-target_tuple = ('Mahatma Gandhi: Collected Works, Volume 1', 473, 3, 14, 1092768)
-
-# Find the part in the PDF corresponding to the target tuple
-result = find_part_in_pdf(pdf_path, target_tuple)
-
-if result:
-    print(f"Found matching part in the PDF:")
-    print(f"Page Number: {result['Page Number']}")
-    print(f"Paragraph Number: {result['Paragraph Number']}")
-    print(f"Sentence Number: {result['Sentence Number']}")
-    print(f"Text: {result['Text']}")
-else:
-    print("Target tuple not found in the PDF.")
